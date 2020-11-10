@@ -1,4 +1,4 @@
-Feed Assessment Tool (FEAST) data repository - download and visualisation
+Feed Assessment Tool (FEAST) data repository - Shiny download and visualisation applications
 ------------
 This repository hosts the R-Shiny code to download and visualise data stored in the [FEAST Global Data Repository](https://feastdata.ilri.org/).
 There are two seperate applications for download and visualise functions.
