@@ -17,7 +17,7 @@ There are two seperate applications for download and visualise functions.
 * [Run the applications](#Run)
 
 
-###Shiny server set-up
+### Shiny server set-up
 On a Ubuntu Linux system, install R (>4.0.0) and follow [this guide](https://rstudio.com/products/shiny/download-server/ubuntu/)
 ```
 $ sudo apt-get install r-base
@@ -41,7 +41,7 @@ systemctl start shiny-server
 
 For troubleshooting, see the [Shiny-server administrator's guide](https://docs.rstudio.com/shiny-server/)
 
-###Required packages
+### Required packages
 Install R package dependencies
 ```
 $ sudo apt-get installlibfontconfig1-dev 
@@ -55,7 +55,7 @@ Install R packages
 $ sudo su - -c "R -e \"install.packages(c('RMySQL', 'DBI', 'pool', 'dplyr', 'ggplot2', 'DT', 'devtools', 'shinyjs', 'openxlsx', 'leaflet', 'wesanderson', 'ggthemes', 'ggsci', 'cowplot', 'plotly', 'shinydashboard'), repos='https://cran.rstudio.com/')\""
 ```
 
-###Run the applications
+### Run the applications
 Enter the database name, host, username and password in the two Global.R files
 Test application in R 
 ```
