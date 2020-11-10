@@ -26,7 +26,7 @@ sudo su - -c "R -e \"install.packages('shiny', repos='https://cran.rstudio.com/'
 
 
 
-If running on an Arch Linux system, you may need to build from source
+If running on an Arch Linux system, you may need to build from source.
 Follow instructions in [the Shiny-server wiki](https://github.com/rstudio/shiny-server/wiki/Building-Shiny-Server-from-Source)
 ```
 $ git clone https://aur.archlinux.org/r-devel.git
@@ -56,7 +56,8 @@ $ sudo su - -c "R -e \"install.packages(c('RMySQL', 'DBI', 'pool', 'dplyr', 'ggp
 ```
 
 ### Run the applications
-Enter the database name, host, username and password in the two Global.R files
+Enter the database name, host, username and password in the two Global.R files.
+
 Test application in R 
 ```
 $ R
