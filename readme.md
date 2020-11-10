@@ -12,9 +12,9 @@ There are two seperate applications for download and visualise functions.
 
 ### Documentation
 
-* [Shiny server set-up](#Shiny server set-up)
-* [Required packages](#Required packages)
-* [Run the applications](#Run the applications)
+* [Shiny server set-up](#shiny-server-set-up)
+* [Required packages](#required-packages)
+* [Run the applications](#run-the-applications)
 
 
 ### Shiny server set-up
