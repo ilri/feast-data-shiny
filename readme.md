@@ -3,9 +3,6 @@ Feed Assessment Tool (FEAST) data repository - download and visualisation
 This repository hosts the R-Shiny code to download and visualise data stored in the [FEAST Global Data Repository](https://feastdata.ilri.org/).
 There are two seperate applications for download and visualise functions.
 
-
-[![Travis-CI Build Status](https://travis-ci.org/rstudio/shinydashboard.svg?branch=master)](https://travis-ci.org/rstudio/shinydashboard)
-### Or [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/rstudio/shinydashboard?branch=master&svg=true)](https://ci.appveyor.com/project/rstudio/shinydashboard)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
 
 
