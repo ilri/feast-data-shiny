@@ -1,0 +1,41 @@
+.sidebar {
+  color: #000;
+  position: fixed;
+  width: 220px;
+  white-space: nowrap;
+  overflow: visible;
+  font-family: Arial, sans-serif !important;
+}
+
+.main-header {
+  position: fixed;
+  width:100%;
+  font-family: Arial, sans-serif !important;
+}
+
+.content {
+  padding-top: 60px;
+  color: black !important;
+  font-family: Arial, sans-serif !important;
+}
+
+.dropdown-menu {
+  color: black;
+}
+
+.filter-option {
+  color: black;
+}
+
+.dld {
+  color: black;
+}
+
+body {
+  color: black !important;
+  font-family: Arial, sans-serif !important;
+}
+
+.display.dataTable.no-fodder{ 
+  overflow-x: scroll !important; 
+}

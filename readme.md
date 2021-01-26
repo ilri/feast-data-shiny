@@ -3,7 +3,7 @@ Feed Assessment Tool (FEAST) data repository - Shiny download and visualisation 
 This repository hosts the R-Shiny code to download and visualise data stored in the [FEAST Global Data Repository](https://feastdata.ilri.org/).
 There are two seperate applications for download and visualise functions.
 
-[![MIT Licensed](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 
 
@@ -44,19 +44,23 @@ For troubleshooting, see the [Shiny-server administrator's guide](https://docs.r
 ### Required packages
 Install R package dependencies
 ```
-$ sudo apt-get installlibfontconfig1-dev 
-$ sudo apt-get installlibcairo2-dev
-$ sudo apt-get installgfortran
+$ sudo apt-get install libfontconfig1-dev libcairo2-dev gfortran libcurl4-openssl-dev libssl-dev libgit2-dev libudunits2-dev libmariadb-dev libxt-dev gdal-bin  
 
 ```
+
+`libgdal-dev` may also be needed for spatial data (300mb+)
 
 Install R packages
 ```
-$ sudo su - -c "R -e \"install.packages(c('RMySQL', 'DBI', 'pool', 'dplyr', 'ggplot2', 'DT', 'devtools', 'shinyjs', 'openxlsx', 'leaflet', 'wesanderson', 'ggthemes', 'ggsci', 'cowplot', 'plotly', 'shinydashboard'), repos='https://cran.rstudio.com/')\""
+$ sudo su - -c "R -e \"install.packages(c('RMariaDB', 'DBI', 'pool', 'dplyr', 'ggplot2', 'DT', 'devtools', 'shinyjs', 'openxlsx', 'leaflet', 'wesanderson', 'ggthemes', 'ggsci', 'cowplot', 'plotly', 'shinydashboard', 'shinyWidgets', 'dbplyr', 'svglite', 'Cairo', 'jsonlite', 'raster', 'sf', 'shinydisconnect'), repos='https://cran.rstudio.com/')\""
 ```
+Alternative to sf: `exactextractr` and `geojsonsf` (more efficient than sf_read). 
+
 
 ### Run the applications
 Enter the database name, host, username and password in the two Global.R files.
+
+Change file permissions recursively for www folders in Downloads and Visualise
 
 Test application in R 
 ```
@@ -65,3 +69,6 @@ $ R
 > runApp(/srv/Shiny/Download/, launch.browser = F)
 ```
 
+### Acknowledgement
+
+This research was conducted as part of the [CGIAR](https://www.cgiar.org/) Research Program on Livestock and is supported by contributors to the [CGIAR Trust Fund](https://www.cgiar.org/funders/). CGIAR is a global research partnership for a food-secure future. Its science is carried out by 15 Research Centers in close collaboration with hundreds of partners across the globe.
