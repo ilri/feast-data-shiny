@@ -267,7 +267,7 @@ assign(substr(tablesExport[i], 8, nchar(tablesExport[i])), eval(parse(text = tab
         )$site_name))[1:2])  
 		
 		c_daterange <- as.Date((dfeast %>%
-                                filter(site_country_name %in% input$SI_Country))$created_at)
+                                filter(site_country_name %in% input$SI_Country))$uploaded_at)
 		
 		updateDateRangeInput(session, "date", start = min(c_daterange)-30,
                            end = max(c_daterange)+1)
@@ -293,17 +293,17 @@ countryOut <- eventReactive(input$SI_Site,{
  
    observeEvent(input$date,
                { c_daterange <- as.Date((dfeast %>%
-                                filter(site_country_name %in% input$SI_Country))$created_at)
+                                filter(site_country_name %in% input$SI_Country))$uploaded_at)
                               
       updatePickerInput(session, "SI_Site",
                         choices = sort(unique((dfeast %>% filter(
           site_country_name %in% input$SI_Country 
-          & created_at > min(c_daterange)-1 & created_at < max(c_daterange)+1
+          & uploaded_at > min(c_daterange)-1 & uploaded_at < max(c_daterange)+1
           )
         )$site_name)),
         selected = sort(unique((dfeast %>% filter(
           site_country_name %in% input$SI_Country 
-          & created_at > min(c_daterange)-1 & created_at < max(c_daterange)+1
+          & uploaded_at > min(c_daterange)-1 & uploaded_at < max(c_daterange)+1
           )
         )$site_name))[1:2])    
  
@@ -583,7 +583,7 @@ Selected_facet_dat <- reactive({
       #deastDat <- if(input$SI_Tables %in% c("AI uptake", "Distance to market") {left_join(feastDat, select(export_crop_cultivation, focus_group_id, focus_group_community))}
       feastDat <- feastDat %>% filter(
           site_country %in% countryOut() & site_name %in% siteOut() #&
-          #created_at > as.character(input$date[1]) & created_at < as.character(input$date[2])
+          #uploaded_at > as.character(input$date[1]) & uploaded_at < as.character(input$date[2])
       )
           nFacets <- length(unique(feastDat[, tablesInputPlot$facetVar[tablesInputPlot$tabLab == input$SI_Tables]]))
 

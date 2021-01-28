@@ -1,6 +1,4 @@
-
-
-tableVec <- c("Coop membership", "Core context attribute score", "Crop cultivation", "Decision making by household", "Feed labor division", "Feed source availability", "Focus group", "Focus group monthly statistics",  "Project site", "Fodder crop cultivation", "Income activity", "Labour activity", "Livestock holding", "Livestock sale")
+tableVec <- c("Project site", "Focus group", "Respondent", "Coop membership", "Core context attribute score", "Crop cultivation", "Decision making by household", "Feed labor division", "Feed source availability", "Focus group monthly statistics",  "Fodder crop cultivation", "Income activity", "Labour activity", "Livestock holding", "Livestock sale", "Purchased feed", "Respondent monthly statistics", "Womens income activity")
 
 header <- dashboardHeader(disable = FALSE#,
 		    #title = tags$a(href='https://feastdata.ilri.org/', tags$img(src='www/brand.png'))

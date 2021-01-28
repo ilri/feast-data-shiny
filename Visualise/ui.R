@@ -3,9 +3,7 @@ shinyjs::useShinyjs() #for download button control https://stackoverflow.com/que
 
                 
 header <- dashboardHeader(disable = FALSE#,
-		    ##title = tags$a(href='https://feastdata.ilri.org/', tags$img(src='www/brand.png'))
-		    #title = "FEAST data visualisations"#,
-		    
+	    
 
 
 ) #End dashboard header
@@ -29,7 +27,7 @@ sidebar <- dashboardSidebar(
 
                     selectInput(inputId = "SI_Region", 
                                 label = "Region(s)",
-                                choices = sort(unique(dfeast$site_world_region[dfeast$site_world_region != "Antarctica"])), 
+                                choices = unique(dfeast$site_world_region), 
                                 selected = "",  
                                 multiple = TRUE),                    
                   

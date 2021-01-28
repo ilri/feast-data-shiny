@@ -186,12 +186,9 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 
 
 
-
-
 ##Further revisions to datasets
 
 FGD <- left_join(export_focus_group, select(export_crop_cultivation, focus_group_id, focus_group_community))
-
 
 
 ##Prepare data for export and visualisation by putting in a new environment with less verbose table names
@@ -200,31 +197,6 @@ assign(substr(tablesExport[i], 8, nchar(tablesExport[i])), eval(parse(text = tab
 }
 
 
-####
-#UI extensions
-
-#Conditional sidebar menu item display
-  output$tblCond <- renderMenu({
-    query <- parseQueryString(session$clientData$url_search)
-    validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
-
-      #if(length(input$SI_Site) != 0 & length(input$SI_Country) != 0 & length(input$SI_Region) != 0)
-          menuItem("Select test", tabName = "tblCond", icon = icon("th"), startExpanded = TRUE,       
-                   menuSubItem("No option",tabName="RO_00"),
-                   menuSubItem("Option 1",tabName="RO_01")
-             #       pickerInput(inputId = "SI_Tables", 
-             #                   label = "Select tables",
-             #                   choices = tablesInputDisp$tabLab, 
-             #                   #selected = tablesUser$tabLab, 
-             #                   multiple = TRUE, 
-             #                   options = list(
-        		#		`actions-box` = TRUE,
-        		#		`none-selected-text` = "Choose tables of interest")
-      	     #         	)
-                  
-        ) #End menu item
-        #}
-  })
 
 ####
 #Observe input events to update other input options
@@ -459,7 +431,7 @@ output$dldAllDat_R <- downloadHandler(
       withProgress(message = 'Your download is being prepared',
       detail = 'Please wait', value = 0, {
 		    for(i in 1:length(tablesExport)) {
-		      write.csv(eval(parse(text = tablesExport[i])), paste0(cacheDIR, "/", substr(tablesExport[i], 8, nchar(tablesExport[i])), ".csv"))
+		      readr::write_csv(eval(parse(text = tablesExport[i])), paste0(cacheDIR, "/", substr(tablesExport[i], 8, nchar(tablesExport[i])), ".csv"))
           incProgress(amount = 1/length(tablesExport), message = "Generating your CSVs", detail = paste(i, "of", length(tablesExport))) #Progress indicator increment
 		    }
 		    csvFiles <- list.files(cacheDIR, full.names = T)[grep(paste0(".csv"), list.files(cacheDIR))]
@@ -532,7 +504,7 @@ output$dldSelDat_R <- downloadHandler(
 	   	    tmpExportTab <- tmpExportTab %>% filter(site_country_name %in% input$SI_Country & site_name %in% input$SI_Site) #SI_Site already filtered by date. 
 	  		}
 
-		write.csv(tmpExportTab, paste0(cacheDIR, "/", substr(tablesExport[i], 8, nchar(tablesExport[i])), ".csv"))
+		readr::write_csv(tmpExportTab, paste0(cacheDIR, "/", substr(tablesExport[i], 8, nchar(tablesExport[i])), ".csv"))
 
 		}
     incProgress(amount = 1/length(input$SI_Tables), message = "Generating your CSVs") #Progress indicator increment

@@ -10,6 +10,7 @@ library(shinydashboard)
 library(shinyjs)
 library(Cairo)#For better Linux display
 library(shinydisconnect)
+library(readr)
 
 
 
@@ -68,23 +69,9 @@ tablesInputDisp$tabLab <- paste0(toupper(substr(tablesInputDisp$tabLab, 1, 1)), 
 
 
 
-#site <- pool %>% tbl("site") %>% data.frame()
-#project <- pool %>% tbl("project") %>% data.frame()
-#country <- pool %>% tbl("country") %>% data.frame()
-#world_region <- tbl(pool, "world_region") %>% data.frame()
-#dfRaw <- left_join(site, select(project, id_project = id, project = title))
-#dfRaw <- left_join(dfRaw, select(country, id_country = id, country = name, id_world_region))
-#dfRaw <- left_join(dfRaw, select(world_region, id_world_region = id, world_region = name))
-#dfRaw <- filter(dfRaw, world_region != "Antarctica") #Remove all excluded datasets exclude != 1 & 
-#dfeast <- select(dfRaw, world_region, country, project, site = name, created_at, exclude)
-#dfeast <- data.frame(dfeast)
-
-#dfeast <- dfeast[, c("world_region", "country", "project", "site", "created_at", "exclude")] #Restrict presentation of results to these columns
-#dfeast$country <- trimws(dfeast$country)
-#dfeast$site <- trimws(dfeast$site)
-#dfeast$site <- str_to_sentence(dfeast$site) #@remove excluded data from these selection options
-
 dfeast <- data.frame(tbl(pool, "export_project_site"))
+dfeast$exclDate <- as.POSIXct(dfeast$uploaded_at + (365*24*60*60)) 
+dfeast <- filter(dfeast, !(exclDate > Sys.time() & !(private %in% c(0, NA))) & excluded %in% c(0, NA))
 dfeast$uploaded_at <- as.Date(substr(dfeast$uploaded_at, 1, 10), "%Y-%m-%d")
 dfeast$site_country_name <- trimws(dfeast$site_country_name)
 dfeast$site_name <- trimws(dfeast$site_name)

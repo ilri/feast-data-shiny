@@ -117,10 +117,13 @@ tablesInputDisp$tabLab <- paste0(toupper(substr(tablesInputDisp$tabLab, 1, 1)), 
 
 
 dfeast <- data.frame(tbl(pool, "export_project_site"))
-dfeast$created_at <- as.Date(substr(dfeast$uploaded_at, 1, 10), "%Y-%m-%d")
+dfeast$exclDate <- as.POSIXct(dfeast$uploaded_at + (365*24*60*60)) 
+dfeast <- filter(dfeast, !(exclDate > Sys.time() & !(private %in% c(0, NA))) & excluded %in% c(0, NA))
+dfeast$uploaded_at <- as.Date(substr(dfeast$uploaded_at, 1, 10), "%Y-%m-%d")
 dfeast$site_country_name <- trimws(dfeast$site_country_name)
 dfeast$site_name <- trimws(dfeast$site_name)
 dfeast$site_name <- str_to_sentence(dfeast$site_name)
+dfeast <- filter(dfeast, site_world_region != "Antarctica" & !is.na(site_world_region))
 
 
 mapfeast <- group_by(dfeast, site_country_name)

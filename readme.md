@@ -52,7 +52,7 @@ $ sudo apt-get install libfontconfig1-dev libcairo2-dev gfortran libcurl4-openss
 
 Install R packages
 ```
-$ sudo su - -c "R -e \"install.packages(c('RMariaDB', 'DBI', 'pool', 'dplyr', 'ggplot2', 'DT', 'devtools', 'shinyjs', 'openxlsx', 'leaflet', 'wesanderson', 'ggthemes', 'ggsci', 'cowplot', 'plotly', 'shinydashboard', 'shinyWidgets', 'dbplyr', 'svglite', 'Cairo', 'jsonlite', 'raster', 'sf', 'shinydisconnect'), repos='https://cran.rstudio.com/')\""
+$ sudo su - -c "R -e \"install.packages(c('RMariaDB', 'DBI', 'pool', 'dplyr', 'ggplot2', 'DT', 'devtools', 'shinyjs', 'openxlsx', 'leaflet', 'wesanderson', 'ggthemes', 'ggsci', 'cowplot', 'plotly', 'shinydashboard', 'shinyWidgets', 'dbplyr', 'svglite', 'Cairo', 'jsonlite', 'raster', 'sf', 'readr', 'shinydisconnect'), repos='https://cran.rstudio.com/')\""
 ```
 Alternative to sf: `exactextractr` and `geojsonsf` (more efficient than sf_read). 
 
