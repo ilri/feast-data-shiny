@@ -44,8 +44,8 @@ sidebar <- dashboardSidebar(
 					)
           )), #End fluid page and column
                 #h6("Select filters for your data download"),
-    sidebarMenu(
-		menuItem("Filter data", tabName = "filter", icon = icon("th"), startExpanded = TRUE,
+#    sidebarMenu(
+#		menuItem("Filter data", tabName = "filter", icon = icon("th"), startExpanded = TRUE,
 				
                     selectInput(inputId = "SI_Region", 
                                 label = "Region(s)", #substr(dfeast$world_region[1],1,2)),
@@ -100,10 +100,10 @@ sidebar <- dashboardSidebar(
       	              	)
                     )
 					
-          ) #End menu item
+#          ) #End menu item
           
                   
-        ) #End menu item
+#        ) #End menu item
 ) #End of sidebar
                   
 body <- dashboardBody(

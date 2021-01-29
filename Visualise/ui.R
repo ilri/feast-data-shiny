@@ -21,8 +21,8 @@ sidebar <- dashboardSidebar(
         				`none-selected-text` = "Choose visualisation of interest")
       		          ),
       		          
-		sidebarMenu(
-		menuItem("Filter data", tabName = "filter", icon = icon("th"), startExpanded = TRUE,
+#		sidebarMenu(
+#		menuItem("Filter data", tabName = "filter", icon = icon("th"), startExpanded = TRUE,
                              
 
                     selectInput(inputId = "SI_Region", 
@@ -63,17 +63,9 @@ sidebar <- dashboardSidebar(
   				))
 
 	                                
-	),#End menu item 1	
+#	),#End menu item 1	
 	
-
-		conditionalPanel(
-              		condition ="input.SI_Tables == 'Feed availability' | input.SI_Tables == 'Crop utilisation'",
-              				
-              			plotOutput("visLegend"#, width = "100%", height = "60px"#,
-                	))
-		
-		#)#end menu item 2
-	)#endsidebarMenu
+#	)#endsidebarMenu
 
 ) #End dashboardsidebar
 
