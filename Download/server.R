@@ -60,6 +60,53 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
     filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>% 
     filter(site_country != "Antarctica ") %>%
     select(-exclDate, -excluded, -export_time, -private)
+    
+    export_focus_group$site_country <- trimws(export_focus_group$site_country)
+	export_focus_group$farmSizeU1prop <- ifelse(export_focus_group$focus_group_threshold_small_farm_ha <= 1 & export_focus_group$focus_group_threshold_large_farm_ha <=1, rowSums(export_focus_group[, c("focus_group_percent_households_small", "focus_group_percent_households_medium")], na.rm = T), 
+                                            export_focus_group$focus_group_percent_households_small)
+                                            
+    export_project_site$site_country <- trimws(export_project_site$site_country_name)
+    export_project_site$site_country_name <- trimws(export_project_site$site_country_name)
+    export_focus_group$site_country <- trimws(export_focus_group$site_country) 
+    export_project_site$site_name <- str_to_sentence(export_project_site$site_name)
+    export_focus_group$site_name <- str_to_sentence(export_focus_group$site_name) 
+    export_project_site$site_name <- trimws(export_project_site$site_name)
+    export_focus_group$site_name <- trimws(export_focus_group$site_name) 
+
+    #Add spatial data	
+    library(sf)
+    library(raster)
+    library(rgdal)
+	
+	if(file.exists('/var/www/html/webroot/rscripts/spatial/glps_gleam_61113_10km.tif') & file.exists('/var/www/html/webroot/rscripts/spatial/glps_gleam_61113_10km.tif')){
+		glps <- raster('/var/www/html/webroot/rscripts/spatial/glps_gleam_61113_10km.tif')
+			
+		tlu <- raster('/var/www/html/webroot/rscripts/spatial/TLU_2010_Aw_ha.tif')
+			
+		glpsLegend <- data.frame(sp_livestock_system_id = 1:15, sp_livestock_system = c("Livestock only systems HyperArid", "Livestock only systems Arid", "Livestock only systems Humid", "Livestock only systems Temperate (and Tropical Highlands)", "Mixed rainfed HyperArid", "Mixed rainfed Arid", "Mixed rainfed Humid", "Mixed rainfed Temperate (and Tropical Highlands)", "Mixed irrigated HyperArid", "Mixed irrigated Arid", "Mixed irrigated Humid", "Mixed irrigated Temperate (and Tropical Highlands)", "Urban areas", "Other_Tree based systems", "Unsuitable"))
+		
+		export_focus_group$sp_livestock_system_id <- NA
+		export_focus_group$sp_TLU_ha_2010_Aw <- NA
+		for(i in 1:nrow(export_focus_group)){
+			if(!is.na(export_focus_group$geo_json[i]) & substr(export_focus_group$geo_json[i], 1, 10) == '{\"type\":\"F'){
+				if(st_is_valid(st_read(export_focus_group$geo_json[i], quiet = T)) == TRUE & !is.na(st_is_valid(st_read(export_focus_group$geo_json[i], quiet = T)))){
+						
+					s1 <- st_read(export_focus_group$geo_json[i], quiet = T)
+							
+					export_focus_group$sp_TLU_ha_2010_Aw[i] <- round(as.numeric(extract(tlu, s1, fun = mean)), 2)
+							
+					export_focus_group$sp_livestock_system_id[i] <- as.numeric(extract(glps, s1, fun = max))
+							
+					export_focus_group <- left_join(export_focus_group, glpsLegend)
+				
+					}}
+			
+				}
+		
+		}
+    detach("package:sf", unload=TRUE)
+    detach("package:raster", unload=TRUE)
+    detach("package:rgdal", unload=TRUE)    
      
   incProgress(amount = 0.85, message = "Caching data", detail = "One moment, please") #Progress indicator increment
   saveRDS(data.frame(tbl(pool, "export_project_site")), paste0(persistDIR, "/NewDataCheck.rds"))
