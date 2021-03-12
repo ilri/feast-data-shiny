@@ -99,28 +99,28 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
     detach("package:rgdal", unload=TRUE)    
      
 	#Remove cached download files
-	if(file.exists("/tmp/FEASTpersist/download/FEAST.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST.xlsx")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SSA.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST_EAsia.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SAsia.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SSA.xlsx")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_EAsia_xlsx")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx")
     }
      
@@ -284,28 +284,28 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 	save(list = ls()[grepl("export", ls())], file = paste0(persistDIR, "/FEASTdatCache.RDATA"))
 	
 		#Remove cached download files
-	if(file.exists("/tmp/FEASTpersist/download/FEAST.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST.xlsx")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SSA.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST_EAsia.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.zip"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.zip")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SAsia.zip")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SSA.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SSA.xlsx")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_EAsia_xlsx")
     }
-	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx"))){
+	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx")
     }
 	})#End progress indicator
