@@ -118,7 +118,7 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
     file.remove("/tmp/FEASTpersist/download/FEAST_SSA.xlsx")
     }
 	if(file.exists("/tmp/FEASTpersist/download/FEAST_EAsia.xlsx")){
-    file.remove("/tmp/FEASTpersist/download/FEAST_EAsia_xlsx")
+    file.remove("/tmp/FEASTpersist/download/FEAST_EAsia.xlsx")
     }
 	if(file.exists("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx")){
     file.remove("/tmp/FEASTpersist/download/FEAST_SAsia.xlsx")
