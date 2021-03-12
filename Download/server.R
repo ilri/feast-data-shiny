@@ -8,48 +8,95 @@ session$allowReconnect(TRUE) #Make sure server reconnects rather than grey out
 start_time <- Sys.time() #Get start time to allow data to load before download
 
 #Initialise persist data directory
-if(!dir.exists(file.path("/tmp/FEASTpersist"))) { 
-  dir.create(file.path("/tmp/FEASTpersist"))
+if(!dir.exists(file.path("/tmp/FEASTpersist/download"))) { 
+  dir.create(file.path("/tmp/FEASTpersist/download"), recursive = T)
   } #Check if cache data directory exists and if not, create it.
+  
+
 
 #Initialise cache data directory
 if(!dir.exists(file.path(paste0("/tmp/FEASTdata/", as.numeric(start_time))))) { 
-  dir.create(file.path(paste0("/tmp/FEASTdata/", as.numeric(start_time))))
+  dir.create(file.path(paste0("/tmp/FEASTdata/", as.numeric(start_time))), recursive = T)
   } #Check if cache data directory exists and if not, create it.
 
 persistDIR <- "/tmp/FEASTpersist" #file.access returns 0 if has permission to write or -1 if not
+persistDownloadDIR <- "/tmp/FEASTpersist/download"
 cacheDIR <- paste0("/tmp/FEASTdata/", as.numeric(start_time)) #ifelse(as.logical(file.access(".", 2) == 0), "FEASTdata", 
 #########################################################
 #Data preparation 
 ###@Need reactive DB checks https://www.r-bloggers.com/2018/06/database-bulk-update-and-inline-editing-in-a-shiny-application-2/
 
-
+now <- Sys.time()
+yearseconds <- (365*24*60*60)
 
 ##Load cached reference
 if(file.exists(paste0(persistDIR, "/NewDataCheck.rds"))) {newDataCheck <- readRDS(paste0(persistDIR, "/NewDataCheck.rds"))
 } else{newDataCheck <- dfeast}
 
 
-if(file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) & identical(newDataCheck$project_title, data.frame(tbl(pool, "export_project_site"))$project_title) & identical(newDataCheck$site_name, data.frame(tbl(pool, "export_project_site"))$site_name) & 
+if(file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) & identical(newDataCheck$project_title, data.frame(tbl(pool, "export_project_site"))$project_title) & identical(newDataCheck$site_name, data.frame(tbl(pool, "export_project_site"))$site_name) & identical(newDataCheck$excluded, data.frame(tbl(pool, "export_project_site"))$excluded) & 
 identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site"))$sp_site_lastup) & identical(newDataCheck$sp_fg_lastup, data.frame(tbl(pool, "export_project_site"))$sp_fg_lastup) & !exists("export_project_site")){ #load data only if the file exists and the objects haven't already been imported due to data update
   withProgress(message = 'Loading cached data',
     detail = 'Please wait', value = 10, {
   load(paste0(persistDIR, "/FEASTdatCache.RDATA"))
+  
   })
+  flagDownloadCSV <- 0 #Zero if no update. Then CSV and XLSX download will look for cached file
+  flagDownloadXLS <- 0
+  flagDownloadCSVsub <- 0
+  flagDownloadXLSsub <- 0
+} else if(file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) & nrow(newDataCheck) == nrow(data.frame(tbl(pool, "export_project_site"))) & !exists("export_project_site") & identical(newDataCheck$excluded, data.frame(tbl(pool, "export_project_site"))$excluded) & (!identical(newDataCheck$project_title, data.frame(tbl(pool, "export_project_site"))$project_title) | !identical(newDataCheck$site_name, data.frame(tbl(pool, "export_project_site"))$site_name) | !identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site"))$sp_site_lastup) | !identical(newDataCheck$sp_fg_lastup, data.frame(tbl(pool, "export_project_site"))$sp_fg_lastup))){ #load data only if the file exists and the objects haven't already been imported due to data update
+  withProgress(message = 'Receiving minor updates',
+    detail = 'Please wait', value = 10, {
+  load(paste0(persistDIR, "/FEASTdatCache.RDATA"))
+  export_project_site <- data.frame(tbl(pool, "export_project_site")) %>%
+    mutate(exclDate = uploaded_at + yearseconds) %>%
+    filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>% 
+    filter(site_country_name != "Antarctica ") %>%
+    select(-exclDate, -excluded, -export_time, -private)
+    
+  export_focus_group <- data.frame(tbl(pool, "export_focus_group")) %>%
+    mutate(exclDate = uploaded_at + yearseconds) %>%
+    filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>% 
+    filter(site_country != "Antarctica ") %>%
+    select(-exclDate, -excluded, -export_time, -private)
+     
+  incProgress(amount = 0.85, message = "Caching data", detail = "One moment, please") #Progress indicator increment
+  saveRDS(data.frame(tbl(pool, "export_project_site")), paste0(persistDIR, "/NewDataCheck.rds"))
+
+  save(list = ls()[grepl("export", ls())], file = paste0(persistDIR, "/FEASTdatCache.RDATA"))
+  })#End progress indicator
+	
+  flagDownloadCSV <- 1 #One if update. Then CSV and XLSX download will create cached file
+  flagDownloadXLS <- 1
+  flagDownloadCSVsub <- 1
+  flagDownloadXLSsub <- 1
 } else{
 	withProgress(message = 'Receiving data updates',
     detail = 'Please wait', value = 0, {
 #if(!file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) | !file.exists(paste0(persistDIR, "/NewDataCheck.rds"))){ #Just in case the RDATA file is deleted but the RDS file is there with equal rows.
   for(i in 1:length(tablesExport)){ #Bring all export tables into R assigning each table as an object
-  assign(tablesExport[i], data.frame(tbl(pool, tablesExport[i])))
+  tmp <- data.frame(tbl(pool, tablesExport[i])) %>%
+    mutate(exclDate = uploaded_at + yearseconds) %>%
+    filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>%
+    select(-exclDate, -excluded, -export_time, -private) %>%
+    filter_at(vars(starts_with("site_country")), all_vars(. != "Antarctica "))
+    
+    assign(tablesExport[i], tmp)
   ##Exclude data here. Filter out observations with a 1 year embargo. First create a new variable exclDate and then filter
-  assign(tablesExport[i], `[[<-`(get(tablesExport[i]), 'exclDate', value = as.POSIXct(eval(parse(text = tablesExport[i]))$uploaded_at) + (365*24*60*60))) 
-  assign(tablesExport[i], filter(eval(parse(text = tablesExport[i])), !(exclDate > Sys.time() & !(private %in% c(0, NA))) & excluded %in% c(0, NA)))
-  assign(tablesExport[i], filter_at(eval(parse(text = tablesExport[i])), vars(starts_with("site_country")), all_vars(. != "Antarctica ")))
-  assign(tablesExport[i], select(eval(parse(text = tablesExport[i])), -exclDate, -excluded, -export_time, -private))
+#  assign(tablesExport[i], `[[<-`(get(tablesExport[i]), 'exclDate', value = as.POSIXct(eval(parse(text = tablesExport[i]))$uploaded_at) + (365*24*60*60))) 
+#  assign(tablesExport[i], filter(eval(parse(text = tablesExport[i])), !(exclDate > Sys.time() & !(private %in% c(0, NA))) & excluded %in% c(0, NA)))
+#  assign(tablesExport[i], filter_at(eval(parse(text = tablesExport[i])), vars(starts_with("site_country")), all_vars(. != "Antarctica ")))
+#  assign(tablesExport[i], select(eval(parse(text = tablesExport[i])), -exclDate, -excluded, -export_time, -private))
   
   incProgress(amount = 0.05, message = "Receiving data updates", detail = "This may take a few minutes") #Progress indicator increment
   }
+  
+  rm(tmp)
+  flagDownloadCSV <- 1 #One if update. Then CSV and XLSX download will create cached file
+  flagDownloadXLS <- 1
+  flagDownloadCSVsub <- 1
+  flagDownloadXLSsub <- 1
   
 	incProgress(amount = 0.05, message = "Cleaning data", detail = "") #Progress indicator increment
 	export_focus_group$site_country <- trimws(export_focus_group$site_country)
@@ -193,9 +240,11 @@ FGD <- left_join(export_focus_group, select(export_crop_cultivation, focus_group
 
 ##Prepare data for export and visualisation by putting in a new environment with less verbose table names
 for(i in 1:length(tablesExport)){
-assign(substr(tablesExport[i], 8, nchar(tablesExport[i])), eval(parse(text = tablesExport[i])), envir = env.export) #Add the table to a new environment and remove 'export_' from the start
+assign(substr(tablesExport[i], 8, nchar(tablesExport[i])), eval(parse(text = tablesExport[i]))) #Add the table to a new environment and remove 'export_' from the start
 }
 
+
+rm(list = ls()[grepl("export", ls())])
 
 
 ####
@@ -286,8 +335,8 @@ else {
 ####
 #Reactive to prepare all table data
 All_data <- reactive({
-    query <- parseQueryString(session$clientData$url_search)
-    validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
+    #query <- parseQueryString(session$clientData$url_search)
+    #validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
 
     req(input$SI_TabViewAll)
   
@@ -305,8 +354,8 @@ All_data <- reactive({
 
 #Reactive to prepare selected table data when no tables selected
 Selected_dataAllTab <- reactive({
-    query <- parseQueryString(session$clientData$url_search)
-    validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
+    #query <- parseQueryString(session$clientData$url_search)
+    #validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
 
     #req(input$date)
     req(input$SI_TabViewSelCountry)
@@ -336,8 +385,8 @@ Selected_dataAllTab <- reactive({
   
 #Reactive to prepare selected table data 
 Selected_data <- reactive({
-    query <- parseQueryString(session$clientData$url_search)
-    validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
+    #query <- parseQueryString(session$clientData$url_search)
+    #validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
 
     #req(input$date)
     req(input$SI_TabViewSel)
@@ -425,46 +474,54 @@ output$dldAllDat_R <- downloadHandler(
    
    content = function(con) {
     query <- parseQueryString(session$clientData$url_search)
-    validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
+    #validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
 
      if(input$DATA_FormatAll == "CSV") {
-      withProgress(message = 'Your download is being prepared',
-      detail = 'Please wait', value = 0, {
+       if(flagDownloadCSV == 0 & file.exists(paste0(persistDownloadDIR, "/FEAST.zip"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST.zip"), con)
+       } else {
+      	withProgress(message = 'Your download is being prepared',
+      	detail = 'Please wait', value = 0, {
 		    for(i in 1:length(tablesExport)) {
-		      readr::write_csv(eval(parse(text = tablesExport[i])), paste0(cacheDIR, "/", substr(tablesExport[i], 8, nchar(tablesExport[i])), ".csv"))
+		      readr::write_csv(eval(parse(text = tablesInputDisp$tabFull[i])), paste0(cacheDIR, "/", substr(tablesExport[i], 8, nchar(tablesExport[i])), ".csv"))
           incProgress(amount = 1/length(tablesExport), message = "Generating your CSVs", detail = paste(i, "of", length(tablesExport))) #Progress indicator increment
 		    }
 		    csvFiles <- list.files(cacheDIR, full.names = T)[grep(paste0(".csv"), list.files(cacheDIR))]
-		    zip(paste0(cacheDIR, "/FEAST", ".zip"), csvFiles, flags = "-j") #, flags = "-j"
+		    zip(paste0(persistDownloadDIR, "/FEAST", ".zip"), csvFiles, flags = "-j") #, flags = "-j"
 			#unlink(csvFiles)
-        file.copy(paste0(cacheDIR, "/FEAST", ".zip"), con)
+        file.copy(paste0(persistDownloadDIR, "/FEAST", ".zip"), con)
+        flagDownloadCSV <- 0
 		#unlink(paste0(cacheDIR, "/complete", start_time, "FEAST.zip")
       })#end of progress indicator
      }
+     }
      
      if(input$DATA_FormatAll == "XLSX") {
+       if(flagDownloadXLS == 0 & file.exists(paste0(persistDownloadDIR, "/FEAST.xlsx"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST.xlsx"), con)
+       } else 
       withProgress(message = 'Your download is being prepared',
       detail = 'Please wait', value = 0, {
        
        wb = createWorkbook()
 		    for(i in 1:length(tablesExport)) {
 			    sheet = addWorksheet(wb, tablesInputDisp$tabLab[i])
-			    writeData(wb, sheet=sheet, eval(parse(text = tablesExport[i]))) 			#eval(parse()) to return the object of the same name as the string
+			    writeData(wb, sheet=sheet, eval(parse(text = tablesInputDisp$tabFull[i]))) 			#eval(parse()) to return the object of the same name as the string
           incProgress(amount = 0.8/length(tablesExport), message = "Adding sheets to workbook", detail = paste(i, "of", length(tablesExport))) #Progress indicator increment
 		  	}
         incProgress(amount = 0.01, message = "Saving workbook", detail = "Please wait") #Progress indicator increment
-			  saveWorkbook(wb, paste0(cacheDIR, "/complete", start_time, "FEAST.xlsx"), overwrite = T)
+			  saveWorkbook(wb, paste0(persistDownloadDIR, "/FEAST.xlsx"), overwrite = T)
         incProgress(amount = 0.19, message = "Saving workbook", detail = "Please wait") #Progress indicator increment
 
-       file.copy(paste0(cacheDIR, "/complete", start_time, "FEAST.xlsx"), con)
-
+       file.copy(paste0(persistDownloadDIR, "/FEAST.xlsx"), con)
+       flagDownloadXLS <- 0
        
       })#end of progress indicator
      }
      
      if(input$DATA_FormatAll == "RDATA") {
        #file.copy(paste0(cacheDIR, "/complete", start_time, "FEAST.RDATA"), con)
-       save(list = ls(env.export)[!grepl("Sub", ls(env.export))], file = con, envir = env.export) #All files already in env. Imported in global.R #ls(env.export)
+       save(list = tablesInputDisp$tabFull, file = con) #All files already in env. Imported in global.R #ls(env.export)
      }
 	 #Remove temporary files
 	 unlink(list.files(cacheDIR, full.names = T))
@@ -488,19 +545,26 @@ output$dldSelDat_R <- downloadHandler(
    
    content = function(con) {
     query <- parseQueryString(session$clientData$url_search)
-    validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
+    #validate(need(!is.null(query$token) && query$token == "d5M6w1MQIah", "Please provide authentication 'token'"))
 
      if(input$DATA_FormatSel == "CSV") {
+     	if(flagDownloadCSVsub == 0 & identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "Sub-Saharan Africa"]))) & file.exists(paste0(persistDownloadDIR, "/FEAST_SSA.zip"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST_SSA.zip"), con)
+       } else if(flagDownloadCSVsub == 0 & identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "East Asia and Pacific"]))) & file.exists(paste0(persistDownloadDIR, "/FEAST_EAsia.zip"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST_EAsia.zip"), con)
+       } else if(flagDownloadCSVsub == 0 & identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "South Asia"]))) & file.exists(paste0(persistDownloadDIR, "/FEAST_SAsia.zip"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST_SAsia.zip"), con)
+       } else {
        withProgress(message = 'Your download is being prepared',
        detail = 'Please wait', value = 0, {
        for(i in 1:length(tablesExport)) {
 		    if(tablesExport[i] %in% tablesInputDisp$tabFull[tablesInputDisp$tabLab %in% input$SI_Tables] || length(input$SI_Tables) == 0){ #Only incorporate tables selected by the user. Default is all selected
-		      tmpExportTab <- eval(parse(text = tablesExport[i])) #eval(parse()) to return the object of the same name as the string
-		    if("site_country" %in% colnames(eval(parse(text = tablesExport[i])))){ #site_name and site_country is in all. Just in case
+		      tmpExportTab <- eval(parse(text = tablesInputDisp$tabFull[i])) #eval(parse()) to return the object of the same name as the string
+		    if("site_country" %in% colnames(eval(parse(text = tablesInputDisp$tabFull[i])))){ #site_name and site_country is in all. Just in case
 	   	      tmpExportTab <- tmpExportTab %>% filter(site_country %in% input$SI_Country & site_name %in% input$SI_Site) #SI_Site already filtered by date. 
 	  		 }
 	  	
-	  	  if("site_country_name" %in% colnames(eval(parse(text = tablesExport[i])))){ #site_name and site_country is in all. Just in case
+	  	  if("site_country_name" %in% colnames(eval(parse(text = tablesInputDisp$tabFull[i])))){ #site_name and site_country is in all. Just in case
 	   	    tmpExportTab <- tmpExportTab %>% filter(site_country_name %in% input$SI_Country & site_name %in% input$SI_Site) #SI_Site already filtered by date. 
 	  		}
 
@@ -512,22 +576,43 @@ output$dldSelDat_R <- downloadHandler(
 		csvFiles <- list.files(cacheDIR, full.names = T)[grep(paste0(".csv"), list.files(cacheDIR))]
 		zip(paste0(cacheDIR, "/",  "FEASTsub", ".zip"), csvFiles, flags = "-j") #, flags = "-j"
        file.copy(paste0(cacheDIR, "/FEASTsub", ".zip"), con)
+       
+       if(identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "Sub-Saharan Africa"])))){  
+       	file.copy(paste0(cacheDIR, "/FEASTsub", ".zip"), paste0(persistDownloadDIR, "/FEAST_SSA.zip"))
+       	flagDownloadCSVsub <- 0
+       	}
+       else if(identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "East Asia and Pacific"])))){  
+       	file.copy(paste0(cacheDIR, "/FEASTsub", ".zip"), paste0(persistDownloadDIR, "/FEAST_EAsia.zip"))
+       	flagDownloadCSVsub <- 0
+       	}
+       else if(identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "South Asia"])))){  
+       	file.copy(paste0(cacheDIR, "/FEASTsub", ".zip"), paste0(persistDownloadDIR, "/FEAST_SAsia.zip"))
+       	flagDownloadCSVsub <- 0
+       	}
       })#end of progress indicator
+     }
      }
      
      if(input$DATA_FormatSel == "XLSX") {
+      if(flagDownloadXLSsub == 0 & identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "Sub-Saharan Africa"]))) & file.exists(paste0(persistDownloadDIR, "/FEAST_SSA.xlsx"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST_SSA.xlsx"), con)
+       } else if(flagDownloadXLSsub == 0 & identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "East Asia and Pacific"]))) & file.exists(paste0(persistDownloadDIR, "/FEAST_EAsia.xlsx"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST_EAsia.xlsx"), con)
+       } else if(flagDownloadXLSsub == 0 & identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "South Asia"]))) & file.exists(paste0(persistDownloadDIR, "/FEAST_SAsia.xlsx"))){
+       	 file.copy(paste0(persistDownloadDIR, "/FEAST_SAsia.xlsx"), con)
+       } else {    
       withProgress(message = 'Your download is being prepared',
       detail = 'Please wait', value = 0, {
       wb = createWorkbook()
 	    for(i in 1:length(tablesExport)) {#! Fix disjointed tables Export and tabLab. Bring into one DF and use consistently throughout
-			  if(tablesExport[i] %in% tablesInputDisp$tabFull[tablesInputDisp$tabLab %in% input$SI_Tables] || length(input$SI_Tables) == 0){ #Only incorporate tables selected by the user. Default is all selected
-			    tmpExportTab <- eval(parse(text = tablesExport[i])) #eval(parse()) to return the object of the same name as the string
+			  if(tablesInputDisp$tabFull[i] %in% tablesInputDisp$tabFull[tablesInputDisp$tabLab %in% input$SI_Tables] || length(input$SI_Tables) == 0){ #Only incorporate tables selected by the user. Default is all selected
+			    tmpExportTab <- eval(parse(text = tablesInputDisp$tabFull[i])) #eval(parse()) to return the object of the same name as the string
 
-	  		if("site_country" %in% colnames(eval(parse(text = tablesExport[i])))){ #site_name and site_country is in all. Just in case
+	  		if("site_country" %in% colnames(eval(parse(text = tablesInputDisp$tabFull[i])))){ #site_name and site_country is in all. Just in case
 	   		  tmpExportTab <- tmpExportTab %>% filter(site_country %in% input$SI_Country & site_name %in% input$SI_Site) #SI_Site already filtered by date. # 
 	  		 }
 
-	  		if("site_country_name" %in% colnames(eval(parse(text = tablesExport[i])))){ #site_name and site_country is in all. Just in case
+	  		if("site_country_name" %in% colnames(eval(parse(text = tablesInputDisp$tabFull[i])))){ #site_name and site_country is in all. Just in case
 	   		  tmpExportTab <- tmpExportTab %>% filter(site_country_name %in% input$SI_Country & site_name %in% input$SI_Site) #SI_Site already filtered by date. # 
 
           incProgress(amount = 0.8/length(input$SI$Tables), message = "Adding sheets to workbook") #Progress indicator increment
@@ -541,7 +626,22 @@ output$dldSelDat_R <- downloadHandler(
 			saveWorkbook(wb, paste0(cacheDIR, "/selected", start_time, "FEAST.xlsx"), overwrite = T)
       incProgress(amount = 0.19, message = "Saving workbook", detail = "Ready") #Progress indicator increment
       file.copy(paste0(cacheDIR, "/selected", start_time, "FEAST.xlsx"), con)
+      
+      #Cache regions
+      if(identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "Sub-Saharan Africa"])))){  
+       	file.copy(paste0(cacheDIR, "/selected", start_time, "FEAST.xlsx"), paste0(persistDownloadDIR, "/FEAST_SSA.xlsx"))
+       	flagDownloadXLSsub <- 0
+       	}
+       else if(identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "East Asia and Pacific"])))){  
+       	file.copy(paste0(cacheDIR, "/selected", start_time, "FEAST.xlsx"), paste0(persistDownloadDIR, "/FEAST_EAsia.xlsx"))
+       	flagDownloadXLSsub <- 0
+       	}
+       else if(identical(input$SI_Site, sort(unique(dfeast$site_name[dfeast$site_world_region == "South Asia"])))){  
+       	file.copy(paste0(cacheDIR, "/selected", start_time, "FEAST.xlsx"), paste0(persistDownloadDIR, "/FEAST_SAsia.xlsx"))
+       	flagDownloadXLSsub <- 0
+       	}
       })#end of progress indicator 
+     }
      }
      
      if(input$DATA_FormatSel == "RDATA") {
@@ -551,20 +651,21 @@ output$dldSelDat_R <- downloadHandler(
 	#Prepare data 	
 	  for(i in 1:length(tablesExport)){ 
 	    if(tablesExport[i] %in% tablesInputDisp$tabFull[tablesInputDisp$tabLab %in% input$SI_Tables] || length(input$SI_Tables) == 0){ #Only incorporate tables selected by the user. Default is all selected
-	      tmpExportTab <- eval(parse(text = tablesExport[i]))
-        if("site_country" %in% colnames(eval(parse(text = tablesExport[i])))){ #site_name and site_country is in all. Just in case
+	      tmpExportTab <- eval(parse(text = tablesInputDisp$tabFull[i]))
+        if("site_country" %in% colnames(eval(parse(text = tablesInputDisp$tabFull[i])))){ #site_name and site_country is in all. Just in case
 	   		  tmpExportTab <- tmpExportTab %>% filter(site_country %in% input$SI_Country & site_name %in% input$SI_Site) #SI_Site already filtered by date. # 
 	  		  }
 
-	  		if("site_country_name" %in% colnames(eval(parse(text = tablesExport[i])))){ #site_name and site_country is in all. Just in case
+	  		if("site_country_name" %in% colnames(eval(parse(text = tablesInputDisp$tabFull[i])))){ #site_name and site_country is in all. Just in case
 	   		  tmpExportTab <- tmpExportTab %>% filter(site_country_name %in% input$SI_Country & site_name %in% input$SI_Site)  #SI_Site already filtered by date. # 
 	  		  }
-	    assign(paste0(substr(tablesExport[i], 8, nchar(tablesExport[i]))), tmpExportTab, envir = env.export.sub) 		 
+	    assign(tablesInputDisp$tabFull[i], tmpExportTab, envir = env.export.sub) 		 
 		  }
 		incProgress(amount = 1/length(input$SI$Tables), message = "Adding dataframes to RDATA file") #Progress indicator increment
 		}
     #save(list = ls(env.export)[grepl("Sub", ls(env.export))], file = paste0(cacheDIR, "/selected", start_time, "FEAST.RDATA"), envir = env.export)
 	 save(list = ls(env.export.sub), file = con, envir = env.export.sub)
+	 rm(list = ls(env.export.sub), envir = env.export.sub) #Free up memory
       #file.copy(paste0(cacheDIR, "/selected", start_time, "FEAST.RDATA"), con)
        })#end of progress indicator
       }

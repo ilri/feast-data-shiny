@@ -64,7 +64,7 @@ onStop(function() {
 tabFull <- dbListTables(pool)
 tablesExport <- tabFull[grepl("export", tabFull)] # alt: exportTables <- dbGetQuery(pool, "select TABLE_NAME FROM information_schema.tables WHERE substring(TABLE_NAME, 1, 6) = 'export'") #get all expor table names
 tablesInputDisp <- gsub("export_", "", tablesExport)
-tablesInputDisp <- data.frame(tabFull = tablesExport, tabFile = tablesInputDisp, tabLab = gsub("_", " ", tablesInputDisp))
+tablesInputDisp <- data.frame(tabFull = substr(tablesExport, 8, nchar(tablesExport)), tabFile = tablesInputDisp, tabLab = gsub("_", " ", tablesInputDisp))
 tablesInputDisp$tabLab <- paste0(toupper(substr(tablesInputDisp$tabLab, 1, 1)), substr(tablesInputDisp$tabLab, 2, nchar(tablesInputDisp$tabLab)))
 
 
