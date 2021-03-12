@@ -19,35 +19,73 @@ persistDIR <- "/tmp/FEASTpersist" #file.access returns 0 if has permission to wr
 cacheDIR <- "/tmp/FEASTdata" #ifelse(as.logical(file.access(".", 2) == 0), "FEASTdata", 
 
 
+now <- Sys.time()
+yearseconds <- (365*24*60*60)
+
 ##Load cached reference
 if(file.exists(paste0(persistDIR, "/NewDataCheck.rds"))) {newDataCheck <- readRDS(paste0(persistDIR, "/NewDataCheck.rds"))
 } else{newDataCheck <- dfeast}
 
 
-if(file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) & identical(newDataCheck$project_title, data.frame(tbl(pool, "export_project_site"))$project_title) & identical(newDataCheck$site_name, data.frame(tbl(pool, "export_project_site"))$site_name) & 
+if(file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) & identical(newDataCheck$project_title, data.frame(tbl(pool, "export_project_site"))$project_title) & identical(newDataCheck$site_name, data.frame(tbl(pool, "export_project_site"))$site_name) & identical(newDataCheck$excluded, data.frame(tbl(pool, "export_project_site"))$excluded) & 
 identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site"))$sp_site_lastup) & identical(newDataCheck$sp_fg_lastup, data.frame(tbl(pool, "export_project_site"))$sp_fg_lastup) & !exists("export_project_site")){ #load data only if the file exists and the objects haven't already been imported due to data update
   withProgress(message = 'Loading cached data',
     detail = 'Please wait', value = 10, {
   load(paste0(persistDIR, "/FEASTdatCache.RDATA"))
+  
   })
+
+} else if(file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) & nrow(newDataCheck) == nrow(data.frame(tbl(pool, "export_project_site"))) & !exists("export_project_site") & identical(newDataCheck$excluded, data.frame(tbl(pool, "export_project_site"))$excluded) & (!identical(newDataCheck$project_title, data.frame(tbl(pool, "export_project_site"))$project_title) | !identical(newDataCheck$site_name, data.frame(tbl(pool, "export_project_site"))$site_name) | !identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site"))$sp_site_lastup) | !identical(newDataCheck$sp_fg_lastup, data.frame(tbl(pool, "export_project_site"))$sp_fg_lastup))){ #load data only if the file exists and the objects haven't already been imported due to data update
+  withProgress(message = 'Receiving minor updates',
+    detail = 'Please wait', value = 10, {
+  load(paste0(persistDIR, "/FEASTdatCache.RDATA"))
+  export_project_site <- data.frame(tbl(pool, "export_project_site")) %>%
+    mutate(exclDate = uploaded_at + yearseconds) %>%
+    filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>% 
+    filter(site_country_name != "Antarctica ") %>%
+    select(-exclDate, -excluded, -export_time, -private)
+    
+  export_focus_group <- data.frame(tbl(pool, "export_focus_group")) %>%
+    mutate(exclDate = uploaded_at + yearseconds) %>%
+    filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>% 
+    filter(site_country != "Antarctica ") %>%
+    select(-exclDate, -excluded, -export_time, -private)
+     
+  incProgress(amount = 0.85, message = "Caching data", detail = "One moment, please") #Progress indicator increment
+  saveRDS(data.frame(tbl(pool, "export_project_site")), paste0(persistDIR, "/NewDataCheck.rds"))
+
+  save(list = ls()[grepl("export", ls())], file = paste0(persistDIR, "/FEASTdatCache.RDATA"))
+  })#End progress indicator
+	
 } else{
 	withProgress(message = 'Receiving data updates',
     detail = 'Please wait', value = 0, {
 #if(!file.exists(paste0(persistDIR, "/FEASTdatCache.RDATA")) | !file.exists(paste0(persistDIR, "/NewDataCheck.rds"))){ #Just in case the RDATA file is deleted but the RDS file is there with equal rows.
-	for(i in 1:length(tablesExport)){ #Bring all export tables into R assigning each table as an object
-		assign(tablesExport[i], data.frame(tbl(pool, tablesExport[i])))
-		##Exclude data here. Filter out observations with a 1 year embargo. First create a new variable exclDate and then filter
-		assign(tablesExport[i], `[[<-`(get(tablesExport[i]), 'exclDate', value = as.POSIXct(eval(parse(text = tablesExport[i]))$uploaded_at) + (365*24*60*60))) 
-		assign(tablesExport[i], filter(eval(parse(text = tablesExport[i])), !(exclDate > Sys.time() & !(private %in% c(0, NA))) & excluded %in% c(0, NA)))
-		assign(tablesExport[i], filter_at(eval(parse(text = tablesExport[i])), vars(starts_with("site_country")), all_vars(. != "Antarctica ")))
-		assign(tablesExport[i], select(eval(parse(text = tablesExport[i])), -exclDate, -excluded, -export_time, -private))
+  for(i in 1:length(tablesExport)){ #Bring all export tables into R assigning each table as an object
+  tmp <- data.frame(tbl(pool, tablesExport[i])) %>%
+    mutate(exclDate = uploaded_at + yearseconds) %>%
+    filter(!(exclDate > now & !(private %in% c(0, NA))) & excluded %in% c(0, NA)) %>%
+    select(-exclDate, -excluded, -export_time, -private) %>%
+    filter_at(vars(starts_with("site_country")), all_vars(. != "Antarctica "))
+    
+    assign(tablesExport[i], tmp)
+  ##Exclude data here. Filter out observations with a 1 year embargo. First create a new variable exclDate and then filter
+#  assign(tablesExport[i], `[[<-`(get(tablesExport[i]), 'exclDate', value = as.POSIXct(eval(parse(text = tablesExport[i]))$uploaded_at) + (365*24*60*60))) 
+#  assign(tablesExport[i], filter(eval(parse(text = tablesExport[i])), !(exclDate > Sys.time() & !(private %in% c(0, NA))) & excluded %in% c(0, NA)))
+#  assign(tablesExport[i], filter_at(eval(parse(text = tablesExport[i])), vars(starts_with("site_country")), all_vars(. != "Antarctica ")))
+#  assign(tablesExport[i], select(eval(parse(text = tablesExport[i])), -exclDate, -excluded, -export_time, -private))
   
-		incProgress(amount = 0.05, message = "Receiving data updates", detail = "This may take a few minutes") #Progress indicator increment
-	}
+  incProgress(amount = 0.05, message = "Receiving data updates", detail = "This may take a few minutes") #Progress indicator increment
+  }
+  
+  rm(tmp)
   
 	incProgress(amount = 0.05, message = "Cleaning data", detail = "") #Progress indicator increment
-	#################################
-	## Data cleaning
+	export_focus_group$site_country <- trimws(export_focus_group$site_country)
+	export_focus_group$farmSizeU1prop <- ifelse(export_focus_group$focus_group_threshold_small_farm_ha <= 1 & export_focus_group$focus_group_threshold_large_farm_ha <=1, rowSums(export_focus_group[, c("focus_group_percent_households_small", "focus_group_percent_households_medium")], na.rm = T), 
+                                            export_focus_group$focus_group_percent_households_small)
+	#matchFGD <- export_feed_source_availability[!duplicated(export_feed_source_availability), c("focus_group_id", "focus_group_community")], focus_group_id)
+
 	export_coop_membership$site_country <- trimws(export_coop_membership$site_country)                 
 	export_income_activity$site_country <- trimws(export_income_activity$site_country)
 	export_core_context_attribute_score$site_country  <- trimws(export_core_context_attribute_score$site_country)   
@@ -67,6 +105,25 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 	export_respondent_monthly_statistics$site_country <- trimws(export_respondent_monthly_statistics$site_country)
 	export_fodder_crop_cultivation$site_country <- trimws(export_fodder_crop_cultivation$site_country)        
 	export_womens_income_activity$site_country <- trimws(export_womens_income_activity$site_country)
+
+	export_coop_membership$site_name <- str_to_sentence(export_coop_membership$site_name)                 
+	export_income_activity$site_name <- str_to_sentence(export_income_activity$site_name)
+	export_core_context_attribute_score$site_name  <- str_to_sentence(export_core_context_attribute_score$site_name)   
+	export_labour_activity$site_name <- str_to_sentence(export_labour_activity$site_name)
+	export_crop_cultivation$site_name <- str_to_sentence(export_crop_cultivation$site_name)      
+	export_livestock_holding$site_name <- str_to_sentence(export_livestock_holding$site_name)
+	export_decision_making_by_household$site_name <- str_to_sentence(export_decision_making_by_household$site_name)   
+	export_livestock_sale$site_name <- str_to_sentence(export_livestock_sale$site_name)
+	export_feed_labor_division$site_name <- str_to_sentence(export_feed_labor_division$site_name)            
+	export_project_site$site_name <- str_to_sentence(export_project_site$site_name)
+	export_feed_source_availability$site_name <- str_to_sentence(export_feed_source_availability$site_name)       
+	export_purchased_feed$site_name <- str_to_sentence(export_purchased_feed$site_name)
+	export_focus_group$site_name <- str_to_sentence(export_focus_group$site_name)               
+	export_respondent$site_name <- str_to_sentence(export_respondent$site_name)
+	export_focus_group_monthly_statistics$site_name <- str_to_sentence(export_focus_group_monthly_statistics$site_name)  
+	export_respondent_monthly_statistics$site_name <- str_to_sentence(export_respondent_monthly_statistics$site_name)
+	export_fodder_crop_cultivation$site_name <- str_to_sentence(export_fodder_crop_cultivation$site_name)        
+	export_womens_income_activity$site_name <- str_to_sentence(export_womens_income_activity$site_name)
 
 	export_coop_membership$site_name <- trimws(export_coop_membership$site_name)                 
 	export_income_activity$site_name <- trimws(export_income_activity$site_name)
@@ -88,33 +145,8 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 	export_womens_income_activity$site_name <- trimws(export_womens_income_activity$site_name)
 
 
-	export_coop_membership$site_name <- str_to_sentence(export_coop_membership$site_name)                 
-	export_income_activity$site_name <- str_to_sentence(export_income_activity$site_name)
-	export_core_context_attribute_score$site_name  <- str_to_sentence(export_core_context_attribute_score$site_name)   
-	export_labour_activity$site_name <- str_to_sentence(export_labour_activity$site_name)
-	export_crop_cultivation$site_name <- str_to_sentence(export_crop_cultivation$site_name)      
-	export_livestock_holding$site_name <- str_to_sentence(export_livestock_holding$site_name)
-	export_decision_making_by_household$site_name <- str_to_sentence(export_decision_making_by_household$site_name)   
-	export_livestock_sale$site_name <- str_to_sentence(export_livestock_sale$site_name)
-	export_feed_labor_division$site_name <- str_to_sentence(export_feed_labor_division$site_name)            
-	export_project_site$site_name <- str_to_sentence(export_project_site$site_name)
-	export_feed_source_availability$site_name <- str_to_sentence(export_feed_source_availability$site_name)       
-	export_purchased_feed$site_name <- str_to_sentence(export_purchased_feed$site_name)
-	export_focus_group$site_name <- str_to_sentence(export_focus_group$site_name)               
-	export_respondent$site_name <- str_to_sentence(export_respondent$site_name)
-	export_focus_group_monthly_statistics$site_name <- str_to_sentence(export_focus_group_monthly_statistics$site_name)  
-	export_respondent_monthly_statistics$site_name <- str_to_sentence(export_respondent_monthly_statistics$site_name)
-	export_fodder_crop_cultivation$site_name <- str_to_sentence(export_fodder_crop_cultivation$site_name)        
-	export_womens_income_activity$site_name <- str_to_sentence(export_womens_income_activity$site_name)
-
-
-
-
-	###Data preparation
-	#Feed availability
 	export_feed_source_availability <- export_feed_source_availability[!is.na(export_feed_source_availability$feed_source_description),]
 	export_feed_source_availability <- export_feed_source_availability[export_feed_source_availability$feed_source_description != "GRAZING",]
-
 
 	#export_feed_source_availability$percentage[is.na(export_feed_source_availability$percentage)] <- 0
 	export_feed_source_availability$feed_source_description <- str_to_sentence(export_feed_source_availability$feed_source_description)
@@ -122,24 +154,8 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 	export_feed_source_availability$feed_source_description <- trimws(export_feed_source_availability$feed_source_description)
 	export_feed_source_availability$feed_source_description <- gsub(",([A-Za-z])", ", \\1", export_feed_source_availability$feed_source_description) #Add space to cases where a character follows a comma
 	export_feed_source_availability$feed_source_description <- gsub("Collected fooder", "Collected fodder", export_feed_source_availability$feed_source_description) #Add space to cases where a character follows a comma
-	export_feed_source_availability$feed_source_description <- gsub("Collect fodder", "Collected fodder", export_feed_source_availability$feed_source_description) #Add space to cases where a character follows a comma
-	#export_feed_source_availability$focus_group_community <- str_to_sentence(export_feed_source_availability$focus_group_community)
+	export_feed_source_availability$feed_source_description <- gsub("Collect fodder", "Collected fodder", export_feed_source_availability$feed_source_description) #Add space to cases where a character 
 
-
-	export_feed_source_availability$site_country <- trimws(export_feed_source_availability$site_country)
-
-
-
-
-	#Farm size
-	export_focus_group$site_country <- trimws(export_focus_group$site_country)
-	export_focus_group$farmSizeU1prop <- ifelse(export_focus_group$focus_group_threshold_small_farm_ha <= 1 & export_focus_group$focus_group_threshold_large_farm_ha <=1, rowSums(export_focus_group[, c("focus_group_percent_households_small", "focus_group_percent_households_medium")], na.rm = T), 
-												export_focus_group$focus_group_percent_households_small)
-	#matchFGD <- export_feed_source_availability[!duplicated(export_feed_source_availability), c("focus_group_id", "focus_group_community")], focus_group_id)
-
-
-
-	#Livestock
 	export_livestock_holding$site_country <- trimws(export_livestock_holding$site_country)
 	export_livestock_holding$livestock_holding_dominant_breed <- str_to_sentence(export_livestock_holding$livestock_holding_dominant_breed)
 	export_livestock_holding$livestock_holding_dominant_breed <- gsub("(?<=[\\s])\\s*|^\\s+|\\s+$", "", export_livestock_holding$livestock_holding_dominant_breed, perl=TRUE) #Remove more than one space in a row
@@ -148,19 +164,10 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 	export_livestock_holding$livestock_holding_dominant_breed <- gsub("Collected fooder", "Collected fodder", export_livestock_holding$livestock_holding_dominant_breed) #Add space to cases where a character follows a comma
 	export_livestock_holding$livestock_holding_dominant_breed <- gsub("Collect fodder", "Collected fodder", export_livestock_holding$livestock_holding_dominant_breed) #Add space to cases where a character follows a comma
 
-
-	#Crops
-	export_crop_cultivation$site_country <- trimws(export_crop_cultivation$site_country)
-
-
-
-	#Fodder
-	export_fodder_crop_cultivation$site_country <- trimws(export_fodder_crop_cultivation$site_country)
 	export_fodder_crop_cultivation$fodderName <- gsub("\\s*\\([^\\)]+\\)", "", export_fodder_crop_cultivation$fodder_crop_type_name)
 	export_fodder_crop_cultivation$fodder_crop_cultivation_cultiavted_land_ha <- as.numeric(export_fodder_crop_cultivation$fodder_crop_cultivation_cultiavted_land_ha)
-
 	
-		###Add spatial data to project_site and focus_group
+	###Add spatial data to project_site and focus_group
 		library(sf)
 		library(raster)
 		library(rgdal)
@@ -195,14 +202,16 @@ identical(newDataCheck$sp_site_lastup, data.frame(tbl(pool, "export_project_site
 		detach("package:raster", unload=TRUE)
 		detach("package:rgdal", unload=TRUE)
 	
+
 	
 	incProgress(amount = 0.05, message = "Caching data", detail = "One moment, please") #Progress indicator increment
 
-  saveRDS(data.frame(tbl(pool, "export_project_site")), paste0(persistDIR, "/NewDataCheck.rds"))
+	saveRDS(data.frame(tbl(pool, "export_project_site")), paste0(persistDIR, "/NewDataCheck.rds"))
 
-  save(list = ls()[grepl("export", ls())], file = paste0(persistDIR, "/FEASTdatCache.RDATA"))
-  })#End progress indicator
+	save(list = ls()[grepl("export", ls())], file = paste0(persistDIR, "/FEASTdatCache.RDATA"))
+	})#End progress indicator
 }
+
 
 FGD <- left_join(export_focus_group, select(export_crop_cultivation, site_name, focus_group_id, focus_group_community))
 
