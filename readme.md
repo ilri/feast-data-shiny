@@ -58,7 +58,7 @@ Test application in R:
 ```console
 $ R
 > library(shiny)
-> runApp(/srv/Shiny/Download/, launch.browser = F)
+> runApp('/srv/Shiny/Download/', launch.browser = F)
 ```
 
 ### Acknowledgement
