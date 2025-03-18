@@ -36,7 +36,7 @@ For troubleshooting, see the [Shiny-server administrator's guide](https://docs.r
 Install R package dependencies
 
 ```console
-$ sudo apt install build-essential libfontconfig1-dev libcairo2-dev gfortran libcurl4-openssl-dev libssl-dev libgit2-dev libudunits2-dev libxt-dev gdal-bin libgdal-dev
+$ sudo apt install build-essential libfontconfig1-dev libcairo2-dev gfortran libcurl4-openssl-dev libssl-dev libgit2-dev libudunits2-dev libxt-dev gdal-bin libgdal-dev libharfbuzz-dev libfribidi-dev
 ```
 
 Install R packages:
